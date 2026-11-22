@@ -4,7 +4,9 @@
 // Autor e apoio ao projeto. A chave Pix vem da compilação (segredo PIX_CHAVE do GitHub, gravado
 // no config.js); sem ela o cartão de apoio não aparece. Versão da Play Store: config { apoio: false }.
 const CFG = window.BIBLIA_CONFIG || {};
-const APOIO = { autor: "Evangelista P. Silva", pix: CFG.pix || "", mostrar: CFG.apoio !== false && !!CFG.pix };
+// Versão da Play Store (config { loja: "play" }): sem Pix (regra de pagamentos da loja) e sem baixar APK por fora (a loja atualiza).
+const LOJA = CFG.loja === "play";
+const APOIO = { autor: "Evangelista P. Silva", pix: CFG.pix || "", mostrar: CFG.apoio !== false && !!CFG.pix && !LOJA };
 // Onde o app está rodando: APK (Capacitor), Windows/Linux (Electron) ou navegador/site
 const NATIVO = !!window.Capacitor?.isNativePlatform?.();
 const DESKTOP = /Electron/i.test(navigator.userAgent);
@@ -885,7 +887,7 @@ const novaVersao = (a, b) => { // a > b ?
 };
 const ATUALIZA_SOZINHO = new URLSearchParams(location.search).get("atualizacao") === "auto";
 async function verificarNovaVersao() {
-  if (!INSTALADO || ATUALIZA_SOZINHO || !CFG.repo || !CFG.versao || !navigator.onLine) return;
+  if (!INSTALADO || LOJA || ATUALIZA_SOZINHO || !CFG.repo || !CFG.versao || !navigator.onLine) return;
   try {
     const r = await fetch(`https://api.github.com/repos/${CFG.repo}/releases/latest`, { headers: { Accept: "application/vnd.github+json" } });
     if (!r.ok) return;
@@ -1010,6 +1012,7 @@ function renderMais() {
   if (estado.nova) at = `<p class="aviso">Nova versão ${esc(estado.nova)} disponível.</p>
       <a class="btn" style="display:grid;place-items:center;text-decoration:none" href="${esc(estado.linkNova)}" target="_blank" rel="noopener">${NATIVO ? "Baixar e instalar a nova versão" : "Abrir a página de download"}</a>
       ${NATIVO ? `<p class="mut">Depois de baixar, toque no arquivo e confirme “Atualizar”. Seus planos de leitura e a posição salva continuam.</p>` : ""}`;
+  else if (LOJA) at = `<p class="mut">As atualizações chegam automaticamente pela Play Store.</p>`;
   else if (ATUALIZA_SOZINHO) at = `<p class="mut">Este app se atualiza sozinho: baixa as novidades em segundo plano e instala quando você fechar.</p>`;
   else if (INSTALADO) at = `<p class="mut">O app confere se há versão nova sempre que abre com internet.</p>`;
   else at = `<p class="mut">O site está sempre na versão mais nova${S.offline ? "; a cópia guardada no aparelho também se atualiza sozinha" : ""}.</p>`;

@@ -33,7 +33,17 @@ Como cada plataforma funciona:
 - **Android** (`capacitor.config.json`, Capacitor 8): o app web vai dentro do APK com tudo (texto, versões, IA). A voz usa o plugin nativo `@capacitor-community/text-to-speech`, porque o WebView do Android não tem a voz do navegador.
 - **Windows/Linux** (`desktop/`, Electron): o app é servido por um protocolo próprio seguro (`app://`). Teste local: `cd desktop && npm install && npm start`.
 - **Site** (`preparar_site.py`): o modelo de IA não vai junto (passa do limite de 100 MB do GitHub); vem do Hugging Face e fica guardado no navegador. O botão “Baixar a Bíblia completa” funciona (HTTPS).
-- `web/config.js` muda por plataforma: `modeloRemoto` (site), `releases` (link de download) e `apoio: false` (versão sem Pix, para a Play Store).
+- `web/config.js` muda por plataforma: `modeloRemoto` (site), `releases` (link de download) e `loja: "play"` (versão da Play Store).
+
+### Play Store
+
+Cada compilação também gera `Biblia-IA-playstore.aab`, assinado com a mesma chave (vira a "chave de upload" na Play). Essa versão não mostra o cartão Pix (regra de pagamentos da loja) e não baixa APK por fora (quem atualiza é a loja). Ele não vai para a Release pública; para baixar:
+
+```bash
+gh run download -R evangelistabrasil/biblia-ia -n loja-android
+```
+
+Política de privacidade (link exigido pela loja): `https://evangelistabrasil.github.io/biblia-ia/privacidade.html`.
 
 ## Começar
 

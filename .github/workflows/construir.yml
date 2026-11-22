@@ -152,6 +152,15 @@ jobs:
             "$BT/apksigner" sign --ks chave.jks --ks-key-alias biblia \
               --ks-pass env:KEYSTORE_SENHA --key-pass env:KEYSTORE_SENHA --out ../Biblia-IA-android.apk alinhado.apk
             "$BT/apksigner" verify --print-certs ../Biblia-IA-android.apk | head -3
+            # Versão da Play Store (.aab): sem o cartão Pix e sem baixar APK por fora (quem atualiza é a loja)
+            CJ=app/src/main/assets/public/config.js
+            sed -i 's/^window.BIBLIA_CONFIG = {/window.BIBLIA_CONFIG = {"loja": "play", /' "$CJ"
+            grep -q '"loja": "play"' "$CJ"
+            ./gradlew --no-daemon bundleRelease
+            jarsigner -keystore chave.jks -storepass:env KEYSTORE_SENHA -keypass:env KEYSTORE_SENHA \
+              -signedjar ../Biblia-IA-playstore.aab app/build/outputs/bundle/release/app-release.aab biblia
+            jarsigner -verify ../Biblia-IA-playstore.aab | tail -1
+            ls -la ../Biblia-IA-playstore.aab
             rm -f chave.jks
           else
             echo "::warning::Sem chave de assinatura (secrets KEYSTORE_B64/KEYSTORE_SENHA): gerando APK de teste (debug)."
@@ -164,6 +173,14 @@ jobs:
         with:
           name: app-android
           path: Biblia-IA-android.apk
+
+      # Arquivo para enviar à Play Store (não vai para a Release pública):
+      #   gh run download -R USUARIO/REPO -n loja-android
+      - uses: actions/upload-artifact@v6
+        with:
+          name: loja-android
+          path: Biblia-IA-playstore.aab
+          if-no-files-found: ignore
 
   desktop:
     name: ${{ matrix.nome }}
