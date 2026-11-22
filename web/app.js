@@ -559,7 +559,7 @@ function renderPlanos() {
         <p>${esc(P.desc)} ${porDia}.<br>${status}</p><div class="pct">${st ? pct + "%" : ""}<small>${st ? "concluído" : ""}</small></div>
         ${st ? `<div class="barra"><span style="width:${pct}%"></span></div>` : ""}</div>`;
     }).join("") +
-    `<details class="sobre"><summary>Sobre o texto</summary><pre>${esc(B.atribuicao)}</pre></details><p class="credito">Criado por ${esc(APOIO.autor)}</p>`;
+    `<details class="sobre"><summary>Sobre o texto</summary><pre>${esc(B.atribuicao)}</pre></details><p class="credito">Made by ${esc(APOIO.autor)}</p>`;
 }
 
 function renderPlano(id) {
@@ -906,13 +906,80 @@ async function apagarDownload() {
   delete S.offline; salvar(); renderMais(); toast("Dados baixados apagados");
 }
 
+// ---------- Site: reconhece o sistema de quem abriu e oferece o app certo ----------
+const SISTEMA = (() => {
+  const ua = navigator.userAgent;
+  if (/Android/i.test(ua)) return "android";
+  if (/Windows/i.test(ua)) return "windows";
+  if (/Linux/i.test(ua) && !/CrOS/i.test(ua)) return "linux";
+  return null;   // iPhone, Mac, Chromebook: não há app próprio, fica no site
+})();
+const NOME_SISTEMA = { android: "Android", windows: "Windows", linux: "Linux" };
+const DICA_INSTALAR = {
+  android: "Depois de baixar, toque no arquivo .apk e confirme “Instalar”. Se o celular pedir, permita instalar apps desta fonte.",
+  windows: "Depois de baixar, abra o arquivo .exe. Se aparecer “O Windows protegeu o computador”, clique em “Mais informações” e depois em “Executar assim mesmo”.",
+  linux: "Depois de baixar, dê permissão e abra: chmod +x Biblia-IA-*.AppImage && ./Biblia-IA-*.AppImage",
+};
+let LINKS_APP = null;
+
+// Links diretos dos instaladores da última versão (o nome do arquivo muda a cada versão, então pergunta ao GitHub).
+async function linksDoApp() {
+  if (LINKS_APP) return LINKS_APP;
+  const L = { android: CFG.releases, windows: CFG.releases, linux: CFG.releases, deb: null };
+  if (CFG.repo) {
+    L.android = `https://github.com/${CFG.repo}/releases/latest/download/Biblia-IA-android.apk`;
+    try {
+      const r = await fetch(`https://api.github.com/repos/${CFG.repo}/releases/latest`, { headers: { Accept: "application/vnd.github+json" } });
+      if (r.ok) for (const a of (await r.json()).assets || []) {
+        const n = a.name, u = a.browser_download_url;
+        if (/\.apk$/i.test(n)) L.android = u;
+        else if (/\.exe$/i.test(n)) L.windows = u;
+        else if (/\.AppImage$/i.test(n)) L.linux = u;
+        else if (/\.deb$/i.test(n)) L.deb = u;
+      }
+    } catch {}
+  }
+  return (LINKS_APP = L);
+}
+
+function htmlLinksApp(L) {
+  const todos = `<a class="btn sec" href="${esc(CFG.releases)}" target="_blank" rel="noopener">Todos os instaladores</a>`;
+  if (!L || !SISTEMA) return `<div class="bts">${L ? "" : `<a class="btn" href="${esc(CFG.releases)}" target="_blank" rel="noopener">Baixar para Android, Windows ou Linux</a>`}${L ? todos : ""}</div>`;
+  const outros = Object.keys(NOME_SISTEMA).filter((s) => s !== SISTEMA)
+    .map((s) => `<a class="btn sec" data-baixar href="${esc(L[s])}">${NOME_SISTEMA[s]}</a>`).join("");
+  return `<div class="bts"><a class="btn" data-baixar href="${esc(L[SISTEMA])}">⬇ Baixar para ${NOME_SISTEMA[SISTEMA]}</a>
+    ${SISTEMA === "linux" && L.deb ? `<a class="btn sec" data-baixar href="${esc(L.deb)}">Baixar .deb (Debian, Ubuntu, Parrot)</a>` : ""}</div>
+    <p class="mut">${esc(DICA_INSTALAR[SISTEMA])}</p>
+    <p class="mut">Outros sistemas:</p><div class="bts bts3">${outros}</div>`;
+}
+
+// Janelinha que aparece sozinha no site (uma vez a cada 7 dias se a pessoa disser "Agora não").
+async function oferecerApp() {
+  if (!CFG.releases || INSTALADO || !SISTEMA) return;
+  if (matchMedia("(display-mode: standalone)").matches) return;           // já abriu como app da tela inicial
+  if (Date.now() - (S.ofertaApp || 0) < 7 * 864e5) return;
+  const L = await linksDoApp();
+  if (!$("#folha").hidden || !$("#folha2").hidden || !$("#seletor").hidden) return;  // não atrapalha quem já está lendo algo
+  S.ofertaApp = Date.now(); salvar();
+  const nome = NOME_SISTEMA[SISTEMA];
+  abrirFolha2(`<strong>Baixar o app Bíblia IA para ${nome}?</strong>
+    <p class="mut" style="font:15px/1.5 var(--sans);margin:6px 0 12px">Reconhecemos que você está usando ${nome}. O app tem tudo dentro: funciona sem internet e se atualiza sozinho.</p>
+    <div class="bts">
+      <a class="btn" data-baixar href="${esc(L[SISTEMA])}">⬇ Baixar para ${nome}</a>
+      ${SISTEMA === "linux" && L.deb ? `<a class="btn sec" data-baixar href="${esc(L.deb)}">Baixar .deb (Debian, Ubuntu, Parrot)</a>` : ""}
+      <button class="btn sec" type="button" data-fechar="1">Agora não, continuar no site</button>
+    </div>
+    <p class="mut" style="font:13px/1.5 var(--sans);margin:12px 0 0">${esc(DICA_INSTALAR[SISTEMA])} <a href="${esc(CFG.releases)}" target="_blank" rel="noopener">Outros sistemas</a></p>`);
+}
+
 function renderMais() {
   // --- offline
   let h;
   $("#cardBaixarApp").hidden = !CFG.releases || INSTALADO;
-  if (CFG.releases && !INSTALADO) $("#linksApp").innerHTML =
-    `<p><a class="btn" style="display:grid;place-items:center;text-decoration:none" href="${esc(CFG.releases)}">Baixar para Android, Windows ou Linux</a></p>
-     <p class="mut">Android: baixe o arquivo .apk e toque nele para instalar (permita “instalar apps desconhecidos” se o celular pedir).</p>`;
+  if (CFG.releases && !INSTALADO) {
+    $("#linksApp").innerHTML = htmlLinksApp(LINKS_APP);
+    if (!LINKS_APP) linksDoApp().then((L) => { $("#linksApp").innerHTML = htmlLinksApp(L); });
+  }
   if (INSTALADO) {
     h = `<p class="estado-ok">✓ Tudo já está instalado neste aparelho</p><p class="mut">Texto, versões, dados da busca e modelo de IA vêm dentro do app. Funciona sem internet.</p>`;
   } else if (!podeGuardar()) {
@@ -997,6 +1064,7 @@ function ligarEventos() {
   const fonte = (d) => { S.fonte = Math.max(15, Math.min(28, S.fonte + d)); document.documentElement.style.setProperty("--fs", S.fonte + "px"); salvar(); };
   $("#btnVersao").addEventListener("click", () => abrirFolha2(htmlVersoes()));
   $("#folha2").addEventListener("click", (e) => {
+    if (e.target.closest("a[data-baixar]")) { toast("Baixando… veja as notificações / downloads"); setTimeout(() => history.back(), 400); return; }
     const b = e.target.closest("button"); if (!b) return;
     if (b.dataset.fechar) history.back();
     else if (b.dataset.fonte) fonte(+b.dataset.fonte);
@@ -1099,7 +1167,7 @@ async function iniciar() {
     return;
   }
   prepararTexto();
-  document.querySelectorAll(".credito").forEach((el) => (el.textContent = "Criado por " + APOIO.autor));
+  document.querySelectorAll(".credito").forEach((el) => (el.textContent = "Made by " + APOIO.autor));
   VER.almeida = { ...B.versoes[0], textos: B.textos };
   if (S.versao && S.versao !== "almeida") { try { await carregarVersao(S.versao); } catch { S.versao = "almeida"; } }
   if (!VER[S.versao]) S.versao = "almeida";
@@ -1112,6 +1180,7 @@ async function iniciar() {
   $("#lista").innerHTML = `<li class="vazio">Digite uma palavra, um tema ou uma referência.</li>`;
   setTimeout(() => { prepararIndice(); if (!window.__semIA) carregarIA(); else carregarEmbeddings(); }, 50);
   setTimeout(() => { autoAtualizarGuardado(); verificarNovaVersao(); }, 4000); // depois que tudo abriu
+  setTimeout(oferecerApp, 1500);
   window.__app = { novaVersao, verificarNovaVersao, autoAtualizarGuardado, B, estado, buscar, semelhantes, refDe, diasDoPlano, PLANOS, CAPS, rotuloDia, minutos, voz, trocarVersao, VER, txtOu, S, get EMB() { return EMB; } }; // usado nos testes
   if (!INSTALADO && "serviceWorker" in navigator && self.isSecureContext) navigator.serviceWorker.register("sw.js").catch(() => {});
 }
