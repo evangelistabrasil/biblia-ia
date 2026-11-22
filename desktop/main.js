@@ -2,6 +2,9 @@
 // O app web é servido por um protocolo próprio (app://) marcado como seguro:
 // assim fetch, módulos JS, WebAssembly e a leitura em voz alta funcionam como num site HTTPS.
 const { app, BrowserWindow, protocol, net, shell, Menu } = require("electron");
+// Atualização automática (Windows instalador e Linux AppImage): baixa da Release do GitHub
+// em segundo plano e instala quando o app é fechado. O .deb não suporta isso: o app só avisa.
+const ATUALIZA_SOZINHO = app.isPackaged && (process.platform === "win32" || !!process.env.APPIMAGE);
 const path = require("path");
 const { pathToFileURL } = require("url");
 
@@ -18,7 +21,7 @@ function criarJanela() {
     icon: path.join(__dirname, "build", "icon.png"),
     webPreferences: { contextIsolation: true, sandbox: true, spellcheck: false },
   });
-  win.loadURL("app://biblia/index.html");
+  win.loadURL("app://biblia/index.html" + (ATUALIZA_SOZINHO ? "?atualizacao=auto" : ""));
   // links externos (ex.: site, releases) abrem no navegador
   win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: "deny" }; });
   win.webContents.on("will-navigate", (e, url) => {
@@ -35,6 +38,15 @@ app.whenReady().then(() => {
     return net.fetch(pathToFileURL(arquivo).toString());
   });
   criarJanela();
+  if (ATUALIZA_SOZINHO) {
+    try {
+      const { autoUpdater } = require("electron-updater");
+      autoUpdater.autoInstallOnAppQuit = true;
+      const verificar = () => autoUpdater.checkForUpdatesAndNotify().catch(() => {}); // sem internet: tenta depois
+      verificar();
+      setInterval(verificar, 6 * 60 * 60 * 1000);
+    } catch (e) { console.error("atualização automática indisponível:", e); }
+  }
   app.on("activate", () => { if (BrowserWindow.getAllWindows().length === 0) criarJanela(); });
 });
 

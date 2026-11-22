@@ -115,6 +115,7 @@ details.sobre{color:var(--mute);font-size:13px;margin:26px 0 10px}details.sobre 
 #abas{position:fixed;left:0;right:0;bottom:0;z-index:10;display:flex;background:var(--capa);border-top:2px solid var(--ouro);padding-bottom:env(safe-area-inset-bottom)}
 #abas button{flex:1;color:#d9c3b4;border-radius:0;min-height:58px;font-size:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
 #abas button svg{width:22px;height:22px}
+#abas button.tem-aviso::after{content:"";position:absolute;margin:-26px 0 0 26px;width:9px;height:9px;border-radius:50%;background:#ffcf5a}
 #abas button[aria-current=page]{color:#fff;box-shadow:inset 0 3px 0 var(--ouro2)}
 #carregando{position:fixed;inset:0;z-index:50;background:var(--capa);color:#f7ecdf;display:grid;place-items:center;text-align:center;font:600 17px var(--serif)}
 #carregando small{display:block;font:400 13px var(--sans);color:#d9c3b4;margin-top:6px}
@@ -226,6 +227,10 @@ body.tocando{padding-bottom:calc(128px + env(safe-area-inset-bottom))}
       <h3>Instale o app</h3>
       <p class="mut">Versões para Android, Windows e Linux, com tudo dentro (funcionam sem internet).</p>
       <div id="linksApp"></div>
+    </div>
+    <div class="card" id="cardAtualizacao">
+      <h3>Atualizações</h3>
+      <div id="atualConteudo"></div>
     </div>
     <div class="card" id="cardOffline">
       <h3>Usar sem internet</h3>

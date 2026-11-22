@@ -1,9 +1,10 @@
 // Bíblia IA: leitura completa, planos de leitura e busca híbrida com IA no aparelho.
 // A busca segue a mesma lógica do biblia_busca.py (BM25 em 3 níveis + embeddings E5 + RRF).
 
-// Autor e apoio ao projeto. Para a versão da Play Store, ponha mostrar: false (veja o README).
+// Autor e apoio ao projeto. A chave Pix vem da compilação (segredo PIX_CHAVE do GitHub, gravado
+// no config.js); sem ela o cartão de apoio não aparece. Versão da Play Store: config { apoio: false }.
 const CFG = window.BIBLIA_CONFIG || {};
-const APOIO = { autor: "Evangelista P. Silva", pix: "evangelistaps@gmail.com", mostrar: CFG.apoio !== false };
+const APOIO = { autor: "Evangelista P. Silva", pix: CFG.pix || "", mostrar: CFG.apoio !== false && !!CFG.pix };
 // Onde o app está rodando: APK (Capacitor), Windows/Linux (Electron) ou navegador/site
 const NATIVO = !!window.Capacitor?.isNativePlatform?.();
 const DESKTOP = /Electron/i.test(navigator.userAgent);
@@ -821,16 +822,24 @@ const CACHE_APP = "biblia-ia-app";
 const podeGuardar = () => self.isSecureContext && "serviceWorker" in navigator && typeof caches !== "undefined";
 const mb = (b) => (b / 1e6).toFixed(b < 1e7 ? 1 : 0) + " MB";
 
-async function baixarTudo() {
-  const bt = $("#btnBaixar"); bt.disabled = true;
-  const prog = $("#offProg"), txt = $("#offTxt");
+// Baixa (ou atualiza) tudo para o cache do aparelho. Na atualização só baixa os arquivos que mudaram
+// (cada arquivo tem uma impressão digital "h" no arquivos.json).
+async function baixarTudo(silencioso = false) {
+  const bt = $("#btnBaixar"); if (bt && !silencioso) bt.disabled = true;
+  const prog = () => $("#offProg"), txt = (t) => { const el = $("#offTxt"); if (el && !silencioso) el.textContent = t; };
   try {
     await navigator.serviceWorker.register("sw.js");
     const lista = await (await fetch("arquivos.json", { cache: "no-store" })).json();
     const cache = await caches.open(CACHE_APP);
-    let feito = 0;
+    const antigos = (S.offline && S.offline.hashes) || {};
+    const faltam = [];
     for (const a of lista.arquivos) {
-      txt.textContent = `Baixando ${a.p === "./" ? "o app" : a.p.split("/").pop()}… ${mb(feito)} de ${mb(lista.total)}`;
+      if (a.h && antigos[a.p] === a.h && (await cache.match(new Request(a.p)))) continue; // não mudou
+      faltam.push(a);
+    }
+    const total = faltam.reduce((x, a) => x + a.t, 0);
+    let feito = 0;
+    for (const a of faltam) {
       const r = await fetch(a.p, { cache: "no-store" });
       if (!r.ok) throw new Error(`${a.p}: ${r.status}`);
       const leitor = r.body.getReader(), partes = [];
@@ -838,19 +847,60 @@ async function baixarTudo() {
         const { done, value } = await leitor.read();
         if (done) break;
         partes.push(value); feito += value.length;
-        prog.style.width = Math.min(100, (100 * feito) / lista.total) + "%";
-        txt.textContent = `Baixando… ${mb(feito)} de ${mb(lista.total)}`;
+        const pg = prog(); if (pg && !silencioso) pg.style.width = Math.min(100, (100 * feito) / (total || 1)) + "%";
+        txt(`Baixando… ${mb(feito)} de ${mb(total)}`);
       }
       await cache.put(new Request(a.p), new Response(new Blob(partes), { headers: { "Content-Type": r.headers.get("Content-Type") || "" } }));
     }
+    // tira do cache arquivos que deixaram de existir
+    const atuais = new Set(lista.arquivos.map((a) => new URL(a.p, location.href).href));
+    for (const req of await cache.keys()) if (!atuais.has(req.url)) await cache.delete(req);
     try { await navigator.storage?.persist?.(); } catch {}
-    S.offline = { versao: lista.versao, total: lista.total, data: hojeISO() }; salvar();
-    toast("Bíblia guardada no aparelho ✓");
+    S.offline = { versao: lista.versao, publicado: lista.data, total: lista.total, data: hojeISO(),
+      hashes: Object.fromEntries(lista.arquivos.map((a) => [a.p, a.h])) };
+    salvar();
+    if (!silencioso) toast("Bíblia guardada no aparelho ✓");
+    else if (faltam.length) { estado.atualizado = true; toast("Bíblia IA atualizada ✓ (vale na próxima abertura)"); }
   } catch (e) {
-    console.error(e); toast("O download falhou: " + e.message);
+    console.error(e); if (!silencioso) toast("O download falhou: " + e.message);
   }
-  renderMais();
+  if (estado.view === "mais") renderMais();
 }
+
+// Site/navegador com a Bíblia guardada: se o site publicou uma versão nova, atualiza sozinho em segundo plano.
+async function autoAtualizarGuardado() {
+  if (INSTALADO || !podeGuardar() || !S.offline || !navigator.onLine) return;
+  try {
+    const l = await (await fetch("arquivos.json", { cache: "no-store" })).json();
+    if (l.versao && l.versao !== S.offline.versao) await baixarTudo(true);
+  } catch {} // sem internet: segue com a cópia guardada
+}
+
+// APK (Android) e .deb (Linux): consulta a última versão publicada no GitHub e oferece o download.
+// Windows e AppImage se atualizam sozinhos (electron-updater); o site se atualiza sozinho.
+const novaVersao = (a, b) => { // a > b ?
+  const pa = String(a).replace(/^v/, "").split(".").map(Number), pb = String(b).replace(/^v/, "").split(".").map(Number);
+  for (let i = 0; i < 3; i++) if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) > (pb[i] || 0);
+  return false;
+};
+const ATUALIZA_SOZINHO = new URLSearchParams(location.search).get("atualizacao") === "auto";
+async function verificarNovaVersao() {
+  if (!INSTALADO || ATUALIZA_SOZINHO || !CFG.repo || !CFG.versao || !navigator.onLine) return;
+  try {
+    const r = await fetch(`https://api.github.com/repos/${CFG.repo}/releases/latest`, { headers: { Accept: "application/vnd.github+json" } });
+    if (!r.ok) return;
+    const tag = (await r.json()).tag_name;
+    if (tag && novaVersao(tag, CFG.versao)) {
+      estado.nova = tag.replace(/^v/, "");
+      estado.linkNova = NATIVO ? `https://github.com/${CFG.repo}/releases/latest/download/Biblia-IA-android.apk`
+                               : `https://github.com/${CFG.repo}/releases/latest`;
+      toast(`Nova versão ${estado.nova} disponível: veja na aba Mais`);
+      const m = $("#abas button[data-v=mais]"); if (m) m.classList.add("tem-aviso");
+      if (estado.view === "mais") renderMais();
+    }
+  } catch {}
+}
+
 async function apagarDownload() {
   try { await caches.delete(CACHE_APP); } catch {}
   delete S.offline; salvar(); renderMais(); toast("Dados baixados apagados");
@@ -875,7 +925,7 @@ function renderMais() {
       <p class="mut">Na versão APK isso não será necessário.</p>`;
   } else if (S.offline) {
     h = `<p class="estado-ok">✓ Tudo guardado neste aparelho (${mb(S.offline.total)})</p>
-      <p class="mut">Versão de ${esc(S.offline.versao)}. Funciona sem internet. Dica: no menu do Chrome, “Adicionar à tela inicial”.</p>
+      <p class="mut">Versão publicada em ${esc(S.offline.publicado || S.offline.versao)}. Funciona sem internet e se atualiza sozinha. Dica: no menu do Chrome, “Adicionar à tela inicial”.</p>
       <div class="prog"><span id="offProg" style="width:100%"></span></div><p class="mut" id="offTxt"></p>
       <button type="button" class="btn" id="btnBaixar">Atualizar (baixar de novo)</button>
       <button type="button" class="btn sec" id="btnApagar" style="margin-top:8px">Apagar dados baixados</button>`;
@@ -887,6 +937,16 @@ function renderMais() {
   $("#offConteudo").innerHTML = h;
   if (!INSTALADO && podeGuardar() && !S.offline) fetch("arquivos.json", { cache: "no-store" }).then((r) => r.json())
     .then((l) => { const b = $("#btnBaixar"); if (b && !b.disabled) b.textContent = `Baixar a Bíblia completa (${mb(l.total)})`; }).catch(() => {});
+  // --- versão e atualizações
+  const ver = CFG.versao ? `Versão ${esc(CFG.versao)}` : "Versão de desenvolvimento";
+  let at;
+  if (estado.nova) at = `<p class="aviso">Nova versão ${esc(estado.nova)} disponível.</p>
+      <a class="btn" style="display:grid;place-items:center;text-decoration:none" href="${esc(estado.linkNova)}" target="_blank" rel="noopener">${NATIVO ? "Baixar e instalar a nova versão" : "Abrir a página de download"}</a>
+      ${NATIVO ? `<p class="mut">Depois de baixar, toque no arquivo e confirme “Atualizar”. Seus planos de leitura e a posição salva continuam.</p>` : ""}`;
+  else if (ATUALIZA_SOZINHO) at = `<p class="mut">Este app se atualiza sozinho: baixa as novidades em segundo plano e instala quando você fechar.</p>`;
+  else if (INSTALADO) at = `<p class="mut">O app confere se há versão nova sempre que abre com internet.</p>`;
+  else at = `<p class="mut">O site está sempre na versão mais nova${S.offline ? "; a cópia guardada no aparelho também se atualiza sozinha" : ""}.</p>`;
+  $("#atualConteudo").innerHTML = `<p><strong>${ver}</strong></p>${at}`;
   // --- voz
   if (!temVoz) $("#vozConteudo").innerHTML = `<p>Este navegador não oferece leitura em voz alta.</p>`;
   else {
@@ -905,7 +965,7 @@ function renderMais() {
     (estado.iaCls === "erro" ? `<br><button type="button" class="btn sec" id="btnIAdeNovo" style="margin-top:8px">Tentar carregar de novo</button>` : "");
   $("#cardApoio").hidden = !APOIO.mostrar;
   if (APOIO.mostrar) $("#apoioConteudo").innerHTML = `<p>Este app é gratuito e sem anúncios. Se quiser ajudar com as despesas de servidor e hospedagem, qualquer valor é bem-vindo.</p>
-    <p class="pix"><span class="mut">Pix (e-mail)</span><br><strong>${esc(APOIO.pix)}</strong><br><span class="mut">${esc(APOIO.autor)}</span></p>
+    <p class="pix"><span class="mut">Chave Pix</span><br><strong>${esc(APOIO.pix)}</strong><br><span class="mut">${esc(APOIO.autor)}</span></p>
     <button type="button" class="btn" id="btnPix">Copiar chave Pix</button>`;
   $("#sobreTxt").textContent = B.atribuicao + B.versoes.filter((v) => v.atribuicao).map((v) => "\n\n" + v.nome + ":\n" + v.atribuicao).join("");
   $("#vozIdioma").textContent = `Versão atual: ${versaoAtual().nome}. A voz segue o idioma da versão.`;
@@ -1051,7 +1111,8 @@ async function iniciar() {
   $("#carregando").hidden = true;
   $("#lista").innerHTML = `<li class="vazio">Digite uma palavra, um tema ou uma referência.</li>`;
   setTimeout(() => { prepararIndice(); if (!window.__semIA) carregarIA(); else carregarEmbeddings(); }, 50);
-  window.__app = { B, estado, buscar, semelhantes, refDe, diasDoPlano, PLANOS, CAPS, rotuloDia, minutos, voz, trocarVersao, VER, txtOu, S, get EMB() { return EMB; } }; // usado nos testes
+  setTimeout(() => { autoAtualizarGuardado(); verificarNovaVersao(); }, 4000); // depois que tudo abriu
+  window.__app = { novaVersao, verificarNovaVersao, autoAtualizarGuardado, B, estado, buscar, semelhantes, refDe, diasDoPlano, PLANOS, CAPS, rotuloDia, minutos, voz, trocarVersao, VER, txtOu, S, get EMB() { return EMB; } }; // usado nos testes
   if (!INSTALADO && "serviceWorker" in navigator && self.isSecureContext) navigator.serviceWorker.register("sw.js").catch(() => {});
 }
 

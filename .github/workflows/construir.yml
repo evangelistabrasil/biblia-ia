@@ -77,6 +77,21 @@ jobs:
           rm -rf package huggingface-transformers-4.3.2.tgz
           ls -la web/lib
 
+      - name: Versão, repositório e chave Pix (config.js do app)
+        env:
+          PIX_CHAVE: ${{ secrets.PIX_CHAVE }}
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then V="${GITHUB_REF_NAME#v}"; else V="1.0.${{ github.run_number }}"; fi
+          python3 - "$V" "${{ github.repository }}" <<'PY'
+          import json, os, sys
+          c = {"versao": sys.argv[1], "repo": sys.argv[2]}
+          pix = os.environ.get("PIX_CHAVE", "").strip()
+          if pix:
+              c["pix"] = pix
+          open("web/config.js", "w", encoding="utf-8").write("window.BIBLIA_CONFIG = " + json.dumps(c, ensure_ascii=False) + ";\n")
+          print("config.js: versão", c["versao"], "| Pix:", "configurado" if pix else "não configurado")
+          PY
+
       - name: Exportar o app (web/)
         run: python exportar_web.py --sem-zip
 
@@ -191,6 +206,9 @@ jobs:
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then V="${GITHUB_REF_NAME#v}"; else V="1.0.${{ github.run_number }}"; fi
           npm ci
           npm pkg set version="$V" homepage="https://github.com/${{ github.repository }}"
+          # atualização automática: o app procura versões novas na Release deste repositório
+          npm pkg delete build.publish
+          npm pkg set build.publish.provider=github build.publish.owner="${{ github.repository_owner }}" build.publish.repo="${{ github.event.repository.name }}"
           npx electron-builder ${{ matrix.alvo }} --publish never
           ls -la dist
 
@@ -201,6 +219,8 @@ jobs:
             desktop/dist/*.AppImage
             desktop/dist/*.deb
             desktop/dist/*.exe
+            desktop/dist/*.blockmap
+            desktop/dist/latest*.yml
           if-no-files-found: error
 
   site:
@@ -253,6 +273,8 @@ jobs:
             **Android:** baixe `Biblia-IA-android.apk` no celular e toque nele para instalar (permita “instalar apps desconhecidos” se pedir).
             **Windows:** baixe o arquivo `.exe` e execute o instalador.
             **Linux:** `.AppImage` (dê permissão de execução e abra) ou `.deb` (`sudo apt install ./arquivo.deb`).
+
+            **Atualizações:** no Windows e no AppImage o app se atualiza sozinho. No Android e no `.deb` o app avisa na aba Mais e baixa a versão nova com um toque.
 
             Tudo funciona sem internet: texto, versões, áudio e busca com IA vêm dentro do app.
             Criado por Evangelista P. Silva.

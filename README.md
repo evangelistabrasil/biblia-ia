@@ -17,7 +17,17 @@ O script (no notebook) cria o repositório no seu GitHub, gera a chave de assina
 | Linux: `.AppImage` e `.deb` | Releases |
 | Site | `https://USUARIO.github.io/biblia-ia/` |
 
-Nova versão depois de mudanças: `bash publicar_github.sh --versao 1.0.1`.
+Nova versão depois de mudanças: `bash publicar_github.sh --versao 1.0.2` (sempre um número maior).
+
+### Atualizações automáticas
+
+| Onde | Como atualiza |
+|---|---|
+| Site | sozinho; a cópia guardada no aparelho baixa em segundo plano só os arquivos que mudaram |
+| Windows (instalador) e Linux (AppImage) | sozinho (`electron-updater`): baixa da Release e instala ao fechar o app |
+| Android (APK) e Linux (.deb) | o app avisa “Nova versão disponível” na aba Mais e baixa com um toque; o Android pede para confirmar a instalação (só a Play Store atualiza sem nenhum toque) |
+
+A chave Pix do cartão “Apoie este projeto” é o segredo `PIX_CHAVE` do repositório (o script pergunta na primeira vez; para trocar: `gh secret set PIX_CHAVE`). Sem ela o cartão não aparece.
 
 Como cada plataforma funciona:
 - **Android** (`capacitor.config.json`, Capacitor 8): o app web vai dentro do APK com tudo (texto, versões, IA). A voz usa o plugin nativo `@capacitor-community/text-to-speech`, porque o WebView do Android não tem a voz do navegador.

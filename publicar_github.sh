@@ -85,6 +85,16 @@ passo "5/6 Segredos da assinatura e site"
 base64 -w0 "$CHAVES/biblia.jks" | gh secret set KEYSTORE_B64 -R "$USUARIO/$NOME"
 gh secret set KEYSTORE_SENHA -R "$USUARIO/$NOME" < "$CHAVES/senha.txt"
 ok "segredos configurados (a chave não vai para o código)"
+# Chave Pix do cartão "Apoie este projeto": você digita uma vez; fica como segredo do repositório.
+if ! gh secret list -R "$USUARIO/$NOME" 2>/dev/null | grep -q "^PIX_CHAVE"; then
+  read -r -p "   Chave Pix para o cartão de apoio (Enter para não mostrar o cartão): " PIX || true
+  if [ -n "${PIX:-}" ]; then
+    printf "%s" "$PIX" | gh secret set PIX_CHAVE -R "$USUARIO/$NOME"
+    ok "chave Pix guardada (para trocar: gh secret set PIX_CHAVE -R $USUARIO/$NOME)"
+  else
+    aviso "sem chave Pix: o cartão de apoio não aparece no app"
+  fi
+fi
 
 passo "6/6 Enviando e compilando"
 git push -q -u origin main

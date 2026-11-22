@@ -21,7 +21,8 @@
     "copyright": "Criado por Evangelista P. Silva",
     "files": [
       "main.js",
-      "build/icon.png"
+      "build/icon.png",
+      "node_modules/**/*"
     ],
     "extraResources": [
       {
@@ -75,5 +76,8 @@
     },
     "publish": null
   },
-  "homepage": "https://github.com"
+  "homepage": "https://github.com",
+  "dependencies": {
+    "electron-updater": "6.8.11"
+  }
 }

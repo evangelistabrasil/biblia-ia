@@ -11,6 +11,7 @@ O índice precisa ter sido criado com o modelo neural:
 """
 
 import argparse
+import hashlib
 import json
 import pickle
 import shutil
@@ -151,13 +152,16 @@ def empacotar(zip_termux: bool = True):
     app.zip: cópia do app inteiro para instalar no Termux do celular."""
     import time
     import zipfile
-    lista = [{"p": "./", "t": (WEB / "index.html").stat().st_size}]
+    h = lambda f: hashlib.sha1(f.read_bytes()).hexdigest()[:12]
+    lista = [{"p": "./", "t": (WEB / "index.html").stat().st_size, "h": h(WEB / "index.html")}]
     for f in sorted(WEB.rglob("*")):
         rel = f.relative_to(WEB).as_posix()
         if f.is_file() and rel not in FORA_DA_LISTA and not rel.startswith("lib/LICENSE"):
-            lista.append({"p": rel, "t": f.stat().st_size})
+            lista.append({"p": rel, "t": f.stat().st_size, "h": h(f)})
     total = sum(a["t"] for a in lista)
-    (WEB / "arquivos.json").write_text(json.dumps({"versao": time.strftime("%Y-%m-%d %H:%M"), "total": total,
+    # versão = impressão digital do conteúdo (muda se qualquer arquivo mudar, mesmo no mesmo minuto)
+    versao = hashlib.sha1("".join(a["p"] + a["h"] for a in lista).encode()).hexdigest()[:12]
+    (WEB / "arquivos.json").write_text(json.dumps({"versao": versao, "data": time.strftime("%Y-%m-%d %H:%M"), "total": total,
                                                    "arquivos": lista}), encoding="utf-8")
     print(f"✔ web/arquivos.json: {len(lista)} arquivos, {total / 1e6:.0f} MB para guardar no aparelho")
     if not zip_termux:
