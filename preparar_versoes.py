@@ -27,6 +27,10 @@ USFM = ["GEN", "EXO", "LEV", "NUM", "DEU", "JOS", "JDG", "RUT", "1SA", "2SA", "1
         "MAT", "MRK", "LUK", "JHN", "ACT", "ROM", "1CO", "2CO", "GAL", "EPH", "PHP", "COL", "1TH", "2TH",
         "1TI", "2TI", "TIT", "PHM", "HEB", "JAS", "1PE", "2PE", "1JN", "2JN", "3JN", "JUD", "REV"]
 IDX_USFM = {c: i for i, c in enumerate(USFM)}
+# Códigos próprios que o eBible usa nos arquivos VPL (vistos no diagnóstico)
+ALIAS_EBIBLE = {"SOL": "SNG", "EZE": "EZK", "JOE": "JOL", "NAH": "NAM", "MAR": "MRK", "JOH": "JHN",
+                "PHI": "PHP", "JAM": "JAS", "1JO": "1JN", "2JO": "2JN", "3JO": "3JN"}
+CONVERSOR = 2   # muda quando a conversão muda: versões salvas com conversor antigo são refeitas
 
 # Numeração judaica (hebraico, JPS) -> numeração cristã (Almeida/KJV).
 # (livro, cap_heb, v_ini, v_fim, cap_cristão, v_ini_cristão). Versículos que viram "título" ou
@@ -123,7 +127,7 @@ VERSOES = {
             "fonte": "https://ebible.org/Scriptures/portft_vpl.zip",
             "atribuicao": "A Bíblia Sagrada, Tradução para Tradutores. Copyright © 2018 Ellis W. Deibler, Jr. "
                           "Licença Creative Commons Atribuição-CompartilhaIgual 4.0. Dados: ebible.org"},
-    "ntb": {"sigla": "NTB", "nome": "Nova Tradução BibliaTodo (NT)", "idioma": "pt", "tipo": "vpl", "testamento": "nt",
+    "ntb": {"sigla": "NTB", "nome": "Nova Tradução BibliaTodo", "idioma": "pt", "tipo": "vpl",
             "fonte": "https://ebible.org/Scriptures/porbrntbt_vpl.zip",
             "atribuicao": "Nova Tradução BibliaTodo (NTB-BR). Texto © 2026 BibliaTodo LLC, que autoriza gratuitamente a "
                           "reprodução e a distribuição. Dados: ebible.org"},
@@ -185,11 +189,12 @@ def de_vpl(dados: bytes):
     for linha in z.read(nome).decode("utf-8-sig").splitlines():
         # aceita versículos juntados ("GEN 1:1-2 texto"): o texto fica no primeiro
         m = re.match(r"^([1-3A-Z]{3})\s+(\d+):(\d+)(?:-\d+)?\s+(.*)$", linha.strip())
-        if m and m.group(1) in IDX_USFM:
+        cod = ALIAS_EBIBLE.get(m.group(1), m.group(1)) if m else None
+        if m and cod in IDX_USFM:
             t = re.sub(r"\\[a-z0-9]+\*?", "", m.group(4))          # marcas USFM que sobrarem
             t = limpar_espacos(t)
             if t:
-                out.append([IDX_USFM[m.group(1)], int(m.group(2)), int(m.group(3)), t])
+                out.append([IDX_USFM[cod], int(m.group(2)), int(m.group(3)), t])
     return out
 
 
@@ -304,8 +309,14 @@ def preparar(vid: str, refazer=False) -> bool:
     info = VERSOES[vid]
     destino = PASTA / f"{vid}.json"
     if destino.exists() and not refazer:
-        print(f"✔ {info['sigla']}: já está pronta")
-        return True
+        try:
+            atual = json.loads(destino.read_text(encoding="utf-8")).get("conversor", 1)
+        except Exception:
+            atual = 0
+        if atual >= CONVERSOR or info["tipo"] in ("midvash", "usfx"):
+            print(f"✔ {info['sigla']}: já está pronta")
+            return True
+        print(f"   {info['sigla']}: convertida com versão antiga do conversor; refazendo")
     print(f"   {info['sigla']}: baixando {info['fonte']} ...")
     try:
         if info["tipo"] in BAIXADORES:
@@ -327,6 +338,7 @@ def preparar(vid: str, refazer=False) -> bool:
     PASTA.mkdir(exist_ok=True)
     saida = {k: info[k] for k in ("sigla", "nome", "idioma", "atribuicao")}
     saida["testamento"] = info.get("testamento") or "ambos"
+    saida["conversor"] = CONVERSOR
     saida["id"] = vid
     saida["versos"] = versos
     destino.write_text(json.dumps(saida, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
