@@ -1,0 +1,79 @@
+{
+  "name": "biblia-ia",
+  "productName": "Bíblia IA",
+  "version": "1.0.0",
+  "description": "Bíblia com leitura, planos, áudio e busca com IA no aparelho",
+  "author": "Evangelista P. Silva",
+  "license": "UNLICENSED",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "linux": "electron-builder --linux AppImage deb",
+    "windows": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "45.4.1",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "com.evangelistapsilva.bibliaia",
+    "productName": "Bíblia IA",
+    "copyright": "Criado por Evangelista P. Silva",
+    "files": [
+      "main.js",
+      "build/icon.png"
+    ],
+    "extraResources": [
+      {
+        "from": "../web",
+        "to": "web",
+        "filter": [
+          "**/*",
+          "!app.zip",
+          "!termux.sh"
+        ]
+      }
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "artifactName": "Biblia-IA-${version}-${os}-${arch}.${ext}",
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Education",
+      "icon": "build/icon.png",
+      "maintainer": "Evangelista P. Silva"
+    },
+    "deb": {
+      "depends": [
+        "libgtk-3-0",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0",
+        "libuuid1",
+        "libsecret-1-0",
+        "speech-dispatcher"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Bíblia IA"
+    },
+    "publish": null
+  },
+  "homepage": "https://github.com"
+}

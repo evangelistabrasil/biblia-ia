@@ -1,0 +1,29 @@
+# gerados (a compilação no GitHub refaz)
+venv/
+__pycache__/
+biblia.db
+biblia_emb.npy
+biblia_meta.pkl
+web/models/
+web/biblia.json
+web/emb.bin
+web/arquivos.json
+web/app.zip
+web/versoes/
+_site/
+node_modules/
+android/
+desktop/node_modules/
+desktop/dist/
+# versões baixadas pelo preparar_versoes.py (licença permite, mas são refeitas na nuvem)
+versoes/nbv.json
+versoes/blt.json
+versoes/tft.json
+versoes/ntb.json
+versoes/jps.json
+# biblioteca de IA: baixada do npm na compilação (o detector de segredos do GitHub
+# confunde nomes internos dela com uma chave de API; o arquivo é o oficial do pacote)
+web/lib/transformers.min.js
+# chaves NUNCA vão para o GitHub
+*.jks
+*.keystore

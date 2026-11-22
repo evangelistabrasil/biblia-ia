@@ -1,0 +1,9 @@
+{
+  "appId": "com.evangelistapsilva.bibliaia",
+  "appName": "Bíblia IA",
+  "webDir": "web",
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
+  }
+}

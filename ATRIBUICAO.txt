@@ -1,0 +1,8 @@
+Texto bíblico: Bíblia Livre (Almeida 1819, rev. 2018)
+Bíblia Livre (BLIVRE), Copyright © 2018 Diego Santos, Mario Sérgio e Marco Teles, http://sites.google.com/site/biblialivre/. Licença Creative Commons Atribuição 4.0 Brasil (http://creativecommons.org/licenses/by/4.0/br/).
+
+Fonte dos dados: https://ebible.org/find/details.php?id=porbr2018
+Convertido de https://github.com/midvash/bible-data (versão almeida-livre).
+
+Palavras entre [colchetes] foram acrescentadas pelos tradutores para dar sentido ao texto;
+no app elas aparecem em itálico.

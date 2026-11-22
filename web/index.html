@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#4a1520">
+<title>Bíblia IA</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icone.svg" type="image/svg+xml">
+<style>
+/*
+VOICE: calma, reverente, direta; um livro para ler todo dia, com uma busca que entende o que você quis dizer.
+IDEA: Bíblia encadernada em couro: capa vinho, folhas brancas, fitilho dourado marcando onde você parou.
+PICTURE: a própria página do capítulo; números de versículo em ouro, palavras acrescentadas em itálico.
+COLOUR/TYPE: vinho #4a1520 na capa e na barra; papel branco (noite: quase preto quente); ouro #b8893a de acento; serifa de livro no texto, sans do sistema na interface.
+LAYOUT: barra de topo por área, conteúdo numa coluna de leitura, abas fixas embaixo (Ler, Buscar, Planos).
+*/
+:root{color-scheme:light dark;
+  --capa:#4a1520;--capa2:#3a0f18;--ouro:#b8893a;--ouro2:#d9b46a;
+  --bg:light-dark(#ffffff,#141011);--ink:light-dark(#1d1416,#efe7e3);--mute:light-dark(#6d5f61,#a99a97);
+  --linha:light-dark(#eadfdc,#2e2426);--chip:light-dark(#f6efed,#2a2022);--ok:light-dark(#2f6b3a,#8fd19e);
+  --realce:light-dark(#fff1cc,#4a3a12);--titulo:light-dark(#4a1520,#e7b9a8);
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Noto Serif",Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--fs:19px}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html{scroll-padding-top:130px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--sans);overflow-x:clip;
+  padding-bottom:calc(68px + env(safe-area-inset-bottom))}
+[hidden]{display:none!important}
+button{font:600 15px var(--sans);min-height:44px;border-radius:12px;border:0;cursor:pointer;color:inherit;background:none}
+button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--ouro);outline-offset:2px}
+.topo{position:sticky;top:0;z-index:5;background:var(--capa);color:#f7ecdf;
+  padding:max(10px,env(safe-area-inset-top)) 12px 10px;box-shadow:0 2px 0 var(--ouro)}
+.topo .linha1{display:flex;align-items:center;justify-content:space-between;gap:8px;max-width:760px;margin:0 auto}
+.topo h1{margin:0;font:700 21px/1.1 var(--serif)}
+.topo .claro{background:var(--capa2);color:#f3e3d3;padding:0 12px}
+#btnRef{font:700 19px var(--serif);background:var(--capa2);padding:0 14px;display:flex;align-items:center;gap:8px;flex:1;justify-content:flex-start;max-width:340px}
+#btnRef::after{content:"";border:6px solid transparent;border-top-color:var(--ouro2);margin-top:6px}
+.fontes{display:flex;gap:6px}.fontes button{width:44px;background:var(--capa2);color:#f3e3d3;font-family:var(--serif)}
+.wrap{max-width:760px;margin:0 auto;padding:0 18px}
+/* ---------- leitor ---------- */
+#planoBarra{background:var(--realce);color:var(--ink);font-size:14px;padding:8px 18px;display:flex;justify-content:space-between;gap:10px;align-items:center}
+#planoBarra button{min-height:32px;font-size:13px;padding:0 10px;background:var(--chip);white-space:nowrap;flex:none}
+#capitulo h2{font:700 30px/1.1 var(--serif);margin:26px 0 4px;color:var(--titulo);text-wrap:balance}
+#capitulo .sub{color:var(--mute);font-size:13px;margin:0 0 18px}
+.vs{font:var(--fs)/1.7 var(--serif);margin:0 0 4px;padding:2px 6px;margin-inline:-6px;border-radius:6px;cursor:pointer;transition:background .6s}
+.vs sup{font:700 11px var(--sans);color:var(--ouro);margin-right:5px;vertical-align:4px}
+.vs i{color:light-dark(#5b4b4d,#cbbdb9)}
+.vs.destaque{background:var(--realce)}
+.navcap{display:flex;gap:10px;margin:28px 0 20px}
+.navcap button{flex:1;background:var(--chip);font-size:15px}
+.navcap button.prin{background:var(--capa);color:#f7ecdf}
+.navcap button:disabled{opacity:.35}
+/* ---------- busca ---------- */
+form{display:flex;gap:8px;max-width:760px;margin:0 auto}
+input[type=search]{flex:1;font:16px var(--sans);padding:11px 14px;border-radius:12px;border:0;background:#fffaf5;color:#1d1416;min-height:46px}
+#ir{background:var(--ouro);color:#24140a;padding:0 16px}
+.modos{display:flex;gap:4px;max-width:760px;margin:8px auto 0;background:var(--capa2);padding:4px;border-radius:12px}
+.modos button{flex:1;color:#d9c3b4;min-height:34px;font-size:14px;border-radius:9px}
+.modos button[aria-pressed=true]{background:#f7ecdf;color:var(--capa)}
+#ia{font-size:13px;flex:1}
+.iabox.ok #ia{color:#f3dca9}.iabox.erro #ia{color:#ffb4a8}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.chips button{background:var(--chip);font-weight:500;font-size:14px;padding:0 12px;min-height:38px}
+#info{font-size:13px;color:var(--mute);margin:12px 0 6px;min-height:20px}#info b{color:var(--ink)}
+.origem{background:var(--chip);border-radius:12px;padding:12px 14px;margin:6px 0 4px}
+.origem strong{font:700 16px var(--serif);color:var(--titulo)}.origem p{margin:4px 0 0;font:16px/1.55 var(--serif)}
+ol{list-style:none;margin:0;padding:0}
+li.res{border-bottom:1px solid var(--linha);padding:13px 0 14px;cursor:pointer}
+.ref{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px}
+.ref strong{font:700 17px var(--serif);color:var(--titulo);margin-right:2px}
+.tag{font-size:12px;padding:1px 8px;border-radius:99px;background:var(--chip);color:var(--mute);white-space:nowrap}
+.tag.p{color:light-dark(#7a5a12,#d9b46a)}.tag.s{color:light-dark(#3d5b7a,#9fc0e0)}
+.acoes{display:flex;justify-content:flex-end;margin-top:4px}
+.sem{font-size:13px;font-weight:600;min-height:36px;padding:0 12px;background:var(--chip);color:var(--titulo)}
+.txt{font:17px/1.6 var(--serif);margin:0}.txt i{color:var(--mute)}
+.vazio{color:var(--mute);text-align:center;padding:36px 10px;font:17px/1.5 var(--serif)}
+/* ---------- planos ---------- */
+.plano{border:1px solid var(--linha);border-radius:16px;padding:16px;margin:14px 0;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center}
+.plano h3{margin:0;font:700 20px/1.2 var(--serif);color:var(--titulo)}
+.plano p{margin:0;color:var(--mute);font-size:14px;grid-column:1}
+.plano .pct{grid-row:1/3;grid-column:2;font:700 22px var(--sans);color:var(--titulo);text-align:right}
+.plano .pct small{display:block;font:500 12px var(--sans);color:var(--mute)}
+.barra{height:8px;border-radius:9px;background:var(--chip);overflow:hidden;grid-column:1/-1;margin-top:8px}
+.barra span{display:block;height:100%;background:var(--ouro)}
+.det h2{font:700 28px/1.15 var(--serif);color:var(--titulo);margin:22px 0 6px}
+.det .meta{color:var(--mute);font-size:14px;margin:0 0 14px}
+.hoje{background:var(--chip);border-radius:16px;padding:16px;margin:12px 0}
+.hoje .rot{font-size:13px;color:var(--mute);margin:0}.hoje .cap{font:600 19px/1.35 var(--serif);margin:4px 0 12px}
+.btn{background:var(--capa);color:#f7ecdf;padding:0 18px;width:100%}
+.btn.sec{background:var(--chip);color:var(--ink)}
+.aviso{font-size:14px;color:light-dark(#8a4b00,#f0c07a);margin:8px 0 0}
+.dias{border-top:1px solid var(--linha);margin-top:18px}
+.dia{display:grid;grid-template-columns:44px minmax(0,1fr);align-items:center;gap:8px;border-bottom:1px solid var(--linha);padding:4px 0}
+.dia .ck{width:40px;min-height:40px;border-radius:50%;border:2px solid var(--linha);color:transparent;font-size:18px;padding:0}
+.dia.feito .ck{background:var(--ok);border-color:var(--ok);color:#fff}
+.dia .txtd{text-align:left;font:500 15px/1.35 var(--sans);padding:6px 0;min-height:44px}
+.dia .txtd small{display:block;color:var(--mute);font-weight:400;font-size:12px}
+.dia.hj{background:var(--realce);border-radius:8px}
+details.sobre{color:var(--mute);font-size:13px;margin:26px 0 10px}details.sobre pre{white-space:pre-wrap;font:13px/1.5 var(--sans)}
+/* ---------- seletor, folha, abas ---------- */
+.tela{position:fixed;inset:0;z-index:20;background:var(--bg);overflow-y:auto;padding-bottom:30px}
+.tela .topo{display:block}
+.secao{font:600 13px var(--sans);color:var(--mute);margin:18px 0 8px;text-transform:none}
+.grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+.grade button{background:var(--chip);font:600 14px var(--sans);padding:6px;line-height:1.2}
+.grade.caps{grid-template-columns:repeat(auto-fill,minmax(52px,1fr))}
+.grade button.atual{background:var(--capa);color:#f7ecdf}
+.fundo{position:fixed;inset:0;z-index:30;background:#0007}
+.folha{position:fixed;left:0;right:0;bottom:0;z-index:31;background:var(--bg);border-radius:18px 18px 0 0;
+  padding:18px 18px calc(18px + env(safe-area-inset-bottom));max-width:760px;margin:0 auto;box-shadow:0 -6px 30px #0004}
+.folha strong{font:700 19px var(--serif);color:var(--titulo)}.folha p{font:17px/1.6 var(--serif);margin:6px 0 14px;max-height:40vh;overflow:auto}
+.folha .bts{display:grid;gap:8px}
+#abas{position:fixed;left:0;right:0;bottom:0;z-index:10;display:flex;background:var(--capa);border-top:2px solid var(--ouro);padding-bottom:env(safe-area-inset-bottom)}
+#abas button{flex:1;color:#d9c3b4;border-radius:0;min-height:58px;font-size:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+#abas button svg{width:22px;height:22px}
+#abas button[aria-current=page]{color:#fff;box-shadow:inset 0 3px 0 var(--ouro2)}
+#carregando{position:fixed;inset:0;z-index:50;background:var(--capa);color:#f7ecdf;display:grid;place-items:center;text-align:center;font:600 17px var(--serif)}
+#carregando small{display:block;font:400 13px var(--sans);color:#d9c3b4;margin-top:6px}
+.credito{text-align:center;font-size:11px;color:var(--mute);margin:6px 0 18px;opacity:.85}
+.aviso-v{background:var(--realce);border-radius:10px;padding:10px 12px;font-size:14px;margin:0 0 14px}
+.texto[dir=rtl] .vs{font-family:"SBL Hebrew","Ezra SIL","Noto Serif Hebrew","Taamey Frank CLM","Times New Roman",serif;font-size:calc(var(--fs) + 3px);line-height:1.9}
+.texto[dir=rtl] .vs sup{margin:0 0 0 6px}
+.ordem{display:flex;gap:4px;background:var(--chip);padding:4px;border-radius:12px;margin:14px 0 4px}
+.ordem button{flex:1;font-size:13px;min-height:38px;border-radius:9px}
+.ordem button[aria-pressed=true]{background:var(--capa);color:#f7ecdf}
+.pix{background:var(--chip);border-radius:12px;padding:12px 14px;margin:10px 0}.pix strong{font-size:17px;overflow-wrap:anywhere}
+#btnVersao{background:var(--capa2);color:#f3dca9;padding:0 10px;font:700 13px var(--sans);flex:none;min-width:52px}
+#btnRef{min-width:0}
+.listaV{display:grid;gap:8px;margin:12px 0}
+.opV{display:block;text-align:left;background:var(--chip);padding:10px 14px;font:500 15px/1.3 var(--sans)}
+.opV b{color:var(--titulo);margin-right:6px}.opV small{display:block;color:var(--mute);font-size:12px;font-weight:400}
+.opV.atual{outline:2px solid var(--ouro)}
+.fontes2{display:flex;align-items:center;gap:8px;margin:4px 0 12px}.fontes2 span{flex:1;font-size:15px}
+.fontes2 button{width:52px;background:var(--chip);font-family:var(--serif);font-size:17px}
+.comp{max-height:55vh;overflow:auto;margin:10px 0}.comp div{border-bottom:1px solid var(--linha);padding:8px 0}
+.comp p{margin:4px 0 0!important;max-height:none!important}
+.folha .mut{color:var(--mute);font-size:14px}
+#btnOuvir{background:var(--capa2);color:#f3dca9;padding:0 12px;white-space:nowrap;flex:none}
+.vs.lendo{background:light-dark(#efe4ff,#2f2540);box-shadow:inset 3px 0 0 var(--ouro)}
+#player{position:fixed;left:0;right:0;bottom:calc(60px + env(safe-area-inset-bottom));z-index:11;background:var(--capa2);color:#f7ecdf;
+  display:flex;align-items:center;gap:8px;padding:8px 12px;box-shadow:0 -2px 12px #0005}
+#player span{flex:1;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#player button{background:#f7ecdf;color:var(--capa);min-width:48px;font-size:15px;padding:0 12px}
+body.tocando{padding-bottom:calc(128px + env(safe-area-inset-bottom))}
+.iabox{display:flex;align-items:center;gap:8px;max-width:760px;margin:8px auto 0;font-size:13px;color:#e9d6c4}
+.iabox .pt{width:9px;height:9px;border-radius:50%;background:#c9a24a;flex:none}
+.iabox.ok .pt{background:#7fd18f}.iabox.erro .pt{background:#ff8f80}
+.iabox button{min-height:30px;font-size:12px;padding:0 10px;background:var(--capa2);color:#f3dca9;margin-left:auto}
+.abrir{width:100%;margin:6px 0 4px;background:var(--capa);color:#f7ecdf;font:600 16px var(--sans)}
+.card{border:1px solid var(--linha);border-radius:16px;padding:16px;margin:16px 0}
+.card h3{margin:0 0 6px;font:700 20px/1.2 var(--serif);color:var(--titulo)}
+.card p{margin:6px 0;font-size:15px}.card .mut{color:var(--mute);font-size:14px}
+.card ol{list-style:decimal;padding-left:22px;font-size:14px;color:var(--mute)}.card code{background:var(--chip);padding:1px 5px;border-radius:5px;font-size:13px;overflow-wrap:anywhere}
+.card label{display:flex;align-items:center;gap:10px;margin:10px 0;font-size:15px}
+.card select,.card input[type=range]{flex:1;font:15px var(--sans);min-height:44px;border-radius:10px;border:1px solid var(--linha);background:var(--bg);color:var(--ink);padding:0 8px}
+.card input[type=checkbox]{width:22px;height:22px;accent-color:var(--capa)}
+.card .btn{margin-top:8px}
+.prog{height:10px;border-radius:9px;background:var(--chip);overflow:hidden;margin:10px 0 4px}.prog span{display:block;height:100%;width:0;background:var(--ouro);transition:width .2s}
+.estado-ok{color:var(--ok);font-weight:600}
+#toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:60}
+@media (prefers-reduced-motion:no-preference){.folha{animation:sobe .2s ease-out}@keyframes sobe{from{transform:translateY(30px);opacity:.5}}}
+</style>
+</head>
+<body>
+<div id="carregando"><div>Abrindo a Bíblia…<small id="carregaTxt">carregando o texto</small></div></div>
+
+<!-- ======================= LER ======================= -->
+<section id="v-ler" hidden>
+  <div class="topo"><div class="linha1">
+    <button id="btnRef" type="button" aria-label="Escolher livro e capítulo">Gênesis 1</button>
+    <button id="btnVersao" type="button" aria-label="Versão da Bíblia e tamanho da letra">ALM</button>
+    <button id="btnOuvir" type="button" aria-label="Ouvir o capítulo em voz alta">▶ Ouvir</button>
+  </div></div>
+  <div id="planoBarra" hidden><span id="planoTxt"></span><button id="planoSair" type="button">Sair do plano</button></div>
+  <div class="wrap">
+    <article id="capitulo"></article>
+    <nav class="navcap"><button id="ant" type="button">‹ Anterior</button><button id="prox" type="button" class="prin">Próximo ›</button></nav>
+    <p class="credito"></p>
+  </div>
+</section>
+
+<!-- ======================= BUSCAR ======================= -->
+<section id="v-buscar" hidden>
+  <div class="topo">
+    <div class="linha1" style="margin-bottom:8px"><h1>Buscar</h1></div>
+    <form id="f" autocomplete="off">
+      <input id="q" type="search" placeholder="Tema, frase ou referência: Salmos 91" aria-label="Buscar" enterkeyhint="search">
+      <button id="ir" type="submit">Buscar</button>
+    </form>
+    <div class="modos" role="group" aria-label="Modo de busca">
+      <button type="button" data-m="hibrido" aria-pressed="true">IA + palavras</button>
+      <button type="button" data-m="bm25" aria-pressed="false">Só palavras</button>
+      <button type="button" data-m="sem" aria-pressed="false">Só IA</button>
+    </div>
+    <div class="iabox" id="iaBox"><span class="pt"></span><span id="ia" role="status">IA: aguardando…</span><button id="iaDeNovo" type="button" hidden>Tentar de novo</button></div>
+  </div>
+  <div class="wrap">
+    <div class="chips" id="chips">
+      <button type="button">não tenha medo</button>
+      <button type="button">o que Jesus ensinou sobre o divórcio</button>
+      <button type="button">Davi e Golias</button>
+      <button type="button">preocupação com o futuro</button>
+      <button type="button">setenta vezes sete</button>
+      <button type="button">o que a Bíblia diz sobre ansiedade</button>
+      <button type="button">jo 3 16</button>
+    </div>
+    <div id="origem"></div>
+    <p id="info"></p>
+    <ol id="lista"></ol>
+  </div>
+</section>
+
+<!-- ======================= PLANOS ======================= -->
+<section id="v-planos" hidden>
+  <div class="topo"><div class="linha1"><h1>Planos de leitura</h1></div></div>
+  <div class="wrap" id="planosConteudo"></div>
+</section>
+
+<!-- ======================= MAIS ======================= -->
+<section id="v-mais" hidden>
+  <div class="topo"><div class="linha1"><h1>Mais</h1></div></div>
+  <div class="wrap">
+    <div class="card" id="cardBaixarApp" hidden>
+      <h3>Instale o app</h3>
+      <p class="mut">Versões para Android, Windows e Linux, com tudo dentro (funcionam sem internet).</p>
+      <div id="linksApp"></div>
+    </div>
+    <div class="card" id="cardOffline">
+      <h3>Usar sem internet</h3>
+      <p class="mut">Guarda a Bíblia completa, os dados da busca e o modelo de IA neste aparelho.</p>
+      <div id="offConteudo"></div>
+    </div>
+    <div class="card" id="cardVoz">
+      <h3>Leitura em voz alta</h3>
+      <p class="mut">Usa a voz do próprio Android (a mesma do Google). Toque em ▶ Ouvir no leitor.</p>
+      <p class="mut" id="vozIdioma"></p>
+      <div id="vozConteudo"></div>
+    </div>
+    <div class="card" id="cardIA">
+      <h3>Inteligência artificial</h3>
+      <p class="mut">A busca usa um modelo de IA (E5 multilíngue) que roda dentro deste celular, sem enviar nada para a internet. Ele entende o sentido da pergunta: “medo do futuro” encontra “não andeis ansiosos pelo dia de amanhã”, mesmo sem nenhuma palavra igual. Também é ele que encontra as passagens semelhantes.</p>
+      <p id="iaMais"></p>
+    </div>
+    <div class="card" id="cardApoio" hidden>
+      <h3>Apoie este projeto</h3>
+      <div id="apoioConteudo"></div>
+    </div>
+    <details class="sobre"><summary>Sobre o texto</summary><pre id="sobreTxt"></pre></details>
+    <p class="credito"></p>
+  </div>
+</section>
+
+<!-- ======================= SELETOR ======================= -->
+<div id="seletor" class="tela" hidden>
+  <div class="topo"><div class="linha1"><h1 id="selTitulo">Escolha o livro</h1><button id="selFechar" type="button" class="claro">Fechar</button></div></div>
+  <div class="wrap" id="selConteudo"></div>
+</div>
+
+<!-- ======================= FOLHA DO VERSÍCULO ======================= -->
+<div id="fundo" class="fundo" hidden></div>
+<div id="folha" class="folha" hidden role="dialog" aria-modal="true" aria-labelledby="folhaRef">
+  <strong id="folhaRef"></strong><p id="folhaTxt"></p>
+  <div class="bts">
+    <button id="folhaOuvir" type="button" class="btn">▶ Ouvir a partir daqui</button>
+    <button id="folhaSem" type="button" class="btn sec">Passagens semelhantes</button>
+    <button id="folhaComparar" type="button" class="btn sec">Comparar versões</button>
+    <button id="folhaCopiar" type="button" class="btn sec">Copiar versículo</button>
+    <button id="folhaFechar" type="button" class="btn sec">Fechar</button>
+  </div>
+</div>
+
+<div id="folha2" class="folha" hidden role="dialog" aria-modal="true"></div>
+<div id="toast" hidden role="status"></div>
+<div id="player" hidden><span id="playerTxt">Lendo…</span><button id="plPausa" type="button" aria-label="Pausar">❚❚</button><button id="plParar" type="button" aria-label="Parar">■</button></div>
+
+<nav id="abas" aria-label="Seções">
+  <button type="button" data-v="ler"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 5.5C5.5 4 9 4 12 6c3-2 6.5-2 9-.5V19c-2.5-1.5-6-1.5-9 .5-3-2-6.5-2-9-.5z"/><path d="M12 6v13.5"/></svg>Ler</button>
+  <button type="button" data-v="buscar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>Buscar</button>
+  <button type="button" data-v="planos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/><path d="m9 15 2 2 4-4"/></svg>Planos</button>
+  <button type="button" data-v="mais"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>Mais</button>
+</nav>
+<script src="config.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

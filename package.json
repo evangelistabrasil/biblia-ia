@@ -1,0 +1,19 @@
+{
+  "name": "biblia-ia",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bíblia com leitura, planos, áudio e busca com IA no aparelho",
+  "author": "Evangelista P. Silva",
+  "scripts": {
+    "android:preparar": "cap add android || true; capacitor-assets generate --android --iconBackgroundColor '#4a1520' --iconBackgroundColorDark '#4a1520' --splashBackgroundColor '#4a1520' --splashBackgroundColorDark '#141011'; cap sync android"
+  },
+  "dependencies": {
+    "@capacitor-community/text-to-speech": "8.0.2",
+    "@capacitor/android": "8.6.2",
+    "@capacitor/core": "8.6.2"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "4.0.0",
+    "@capacitor/cli": "8.6.2"
+  }
+}

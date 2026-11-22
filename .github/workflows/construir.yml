@@ -1,0 +1,258 @@
+# Compila a Bíblia IA para Android (APK), Windows (.exe), Linux (AppImage e .deb) e publica o site.
+#  - push na main: compila tudo e atualiza o site (os arquivos ficam em Actions › Artifacts)
+#  - tag v*: compila tudo e publica uma Release com os instaladores
+name: Construir Bíblia IA
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: construir-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dados:
+    name: Dados (índice, IA e versões)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Dependências Python
+        run: |
+          pip install --quiet torch --index-url https://download.pytorch.org/whl/cpu
+          pip install --quiet sentence-transformers numpy scikit-learn
+
+      - name: Cache do modelo de IA
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ hashFiles('exportar_web.py', 'biblia_busca.py') }}
+
+      - name: Cache do índice
+        uses: actions/cache@v4
+        with:
+          path: |
+            biblia.db
+            biblia_emb.npy
+            biblia_meta.pkl
+          key: indice-${{ hashFiles('biblia_almeida.json', 'biblia_busca.py') }}
+
+      - name: Cache das versões baixadas
+        uses: actions/cache@v4
+        with:
+          path: |
+            versoes/nbv.json
+            versoes/blt.json
+            versoes/tft.json
+            versoes/ntb.json
+            versoes/jps.json
+          key: versoes-${{ hashFiles('preparar_versoes.py') }}
+
+      - name: Versões da Bíblia
+        run: python preparar_versoes.py
+
+      - name: Índice da busca (31.102 versículos)
+        run: python biblia_busca.py indexar biblia_almeida.json --se-necessario
+
+      - name: Avaliação da busca
+        run: python avaliar.py
+
+      - name: Biblioteca de IA (Transformers.js, do npm)
+        run: |
+          npm pack --silent @huggingface/transformers@4.3.2
+          tar xzf huggingface-transformers-4.3.2.tgz package/dist/transformers.min.js
+          mv package/dist/transformers.min.js web/lib/
+          rm -rf package huggingface-transformers-4.3.2.tgz
+          ls -la web/lib
+
+      - name: Exportar o app (web/)
+        run: python exportar_web.py --sem-zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: web
+          retention-days: 7
+
+  android:
+    name: Android (APK)
+    needs: dados
+    runs-on: ubuntu-latest
+    env:
+      KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+      KEYSTORE_SENHA: ${{ secrets.KEYSTORE_SENHA }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: web
+          path: web
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Projeto Android (Capacitor)
+        run: |
+          npm ci
+          rm -f web/app.zip web/termux.sh
+          npx cap add android
+          npx capacitor-assets generate --android --iconBackgroundColor '#4a1520' --iconBackgroundColorDark '#4a1520' --splashBackgroundColor '#4a1520' --splashBackgroundColorDark '#141011'
+          npx cap sync android
+
+      - name: Número da versão
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then V="${GITHUB_REF_NAME#v}"; else V="1.0.${{ github.run_number }}"; fi
+          sed -i "s/versionCode 1$/versionCode ${{ github.run_number }}/; s/versionName \"1.0\"/versionName \"$V\"/" android/app/build.gradle
+          grep -E "versionCode|versionName" android/app/build.gradle
+
+      - name: Compilar e assinar
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          if [ -n "$KEYSTORE_B64" ]; then
+            ./gradlew --no-daemon assembleRelease
+            echo "$KEYSTORE_B64" | base64 -d > chave.jks
+            BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+            "$BT/zipalign" -p -f 4 app/build/outputs/apk/release/app-release-unsigned.apk alinhado.apk
+            "$BT/apksigner" sign --ks chave.jks --ks-key-alias biblia \
+              --ks-pass env:KEYSTORE_SENHA --key-pass env:KEYSTORE_SENHA --out ../Biblia-IA-android.apk alinhado.apk
+            "$BT/apksigner" verify --print-certs ../Biblia-IA-android.apk | head -3
+            rm -f chave.jks
+          else
+            echo "::warning::Sem chave de assinatura (secrets KEYSTORE_B64/KEYSTORE_SENHA): gerando APK de teste (debug)."
+            ./gradlew --no-daemon assembleDebug
+            cp app/build/outputs/apk/debug/app-debug.apk ../Biblia-IA-android.apk
+          fi
+          ls -la ../Biblia-IA-android.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-android
+          path: Biblia-IA-android.apk
+
+  desktop:
+    name: ${{ matrix.nome }}
+    needs: dados
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            nome: Linux (AppImage e .deb)
+            alvo: --linux AppImage deb
+            artefato: app-linux
+          - os: windows-latest
+            nome: Windows (instalador .exe)
+            alvo: --win nsis
+            artefato: app-windows
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: web
+          path: web
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Compilar
+        working-directory: desktop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then V="${GITHUB_REF_NAME#v}"; else V="1.0.${{ github.run_number }}"; fi
+          npm ci
+          npm pkg set version="$V" homepage="https://github.com/${{ github.repository }}"
+          npx electron-builder ${{ matrix.alvo }} --publish never
+          ls -la dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artefato }}
+          path: |
+            desktop/dist/*.AppImage
+            desktop/dist/*.deb
+            desktop/dist/*.exe
+          if-no-files-found: error
+
+  site:
+    name: Site (GitHub Pages)
+    needs: dados
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.publicar.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: web
+          path: web
+
+      - name: Montar o site
+        run: python3 preparar_site.py --releases "https://github.com/${{ github.repository }}/releases/latest"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: publicar
+        uses: actions/deploy-pages@v4
+
+  release:
+    name: Publicar Release
+    needs: [android, desktop]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: app-*
+          merge-multiple: true
+          path: instaladores
+
+      - run: ls -la instaladores
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: Bíblia IA ${{ github.ref_name }}
+          files: instaladores/*
+          body: |
+            **Android:** baixe `Biblia-IA-android.apk` no celular e toque nele para instalar (permita “instalar apps desconhecidos” se pedir).
+            **Windows:** baixe o arquivo `.exe` e execute o instalador.
+            **Linux:** `.AppImage` (dê permissão de execução e abra) ou `.deb` (`sudo apt install ./arquivo.deb`).
+
+            Tudo funciona sem internet: texto, versões, áudio e busca com IA vêm dentro do app.
+            Criado por Evangelista P. Silva.
