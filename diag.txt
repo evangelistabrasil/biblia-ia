@@ -1,0 +1,64 @@
+====================================================================== 
+NBV  https://ebible.org/Scriptures/poronbv_vpl.zip
+  arquivos no zip: [('haiola.css', 10931), ('poronbv_about.htm', 4515), ('poronbv_vpl.sql', 6859744), ('poronbv_vpl.txt', 4734248), ('poronbv_vpl.xml', 5356413), ('signature.txt.asc', 2037)]
+
+  --- poronbv_vpl.txt: 31105 linhas
+   | GEN 1:1 No princípio Deus criou os céus e a terra.
+   | GEN 1:2 A terra era vazia e sem forma definida, e o Espírito de Deus se movia por sobre as águas.
+   | GEN 1:3 Deus disse: “Haja luz”, e houve luz.
+   | GEN 1:4 Deus ficou satisfeito, e separou a luz da escuridão.
+   códigos de livro (ordem do arquivo):
+    GEN:1533 EXO:1213 LEV:859 NUM:1288 DEU:959 JOS:658 JDG:619 RUT:85 1SA:811 2SA:695 1KI:816 2KI:719 1CH:942 2CH:822 EZR:280 NEH:406 EST:167 JOB:1070 PSA:2461 PRO:915 ECC:222 SOL:117 ISA:1292 JER:1364 LAM:154 EZE:1273 DAN:357 HOS:197 JOE:73 AMO:146 OBA:21 JON:48 MIC:105 NAH:47 HAB:56 ZEP:53 HAG:38 ZEC:211 MAL:55 MAT:1071 MAR:678 LUK:1151 JOH:879 ACT:1007 ROM:433 1CO:437 2CO:257 GAL:149 EPH:155 PHI:104 COL:95 1TH:89 2TH:47 1TI:113 2TI:83 TIT:46 PHM:25 HEB:303 JAM:108 1PE:105 2PE:61 1JO:105 2JO:13 3JO:15 JUD:25 REV:404
+   códigos NÃO reconhecidos: ['SOL', 'EZE', 'JOE', 'NAH', 'MAR', 'JOH', 'PHI', 'JAM', '1JO', '2JO', '3JO']
+   livros que NÃO aparecem: ['SNG', 'EZK', 'JOL', 'NAM', 'MRK', 'JHN', 'PHP', 'JAS', '1JN', '2JN', '3JN']
+   linhas sem formato 'LIVRO cap:vers' (0):
+   versículos sem texto: 0
+   exemplos de versículos juntados: []
+====================================================================== 
+NTB  https://ebible.org/Scriptures/porbrntbt_vpl.zip
+  arquivos no zip: [('haiola.css', 10931), ('porbrntbt_about.htm', 1498), ('porbrntbt_vpl.sql', 6313222), ('porbrntbt_vpl.txt', 4125640), ('porbrntbt_vpl.xml', 4747723), ('signature.txt.asc', 2051)]
+
+  --- porbrntbt_vpl.txt: 31104 linhas
+   | GEN 1:1 No princípio, Deus criou os céus e a terra.
+   | GEN 1:2 A terra era sem forma e vazia; as trevas cobriam a superfície do abismo, e o Espírito de Deus pairava 
+   | GEN 1:3 Deus disse: “Haja luz”. E houve luz.
+   | GEN 1:4 Deus viu que a luz era boa e separou a luz das trevas.
+   códigos de livro (ordem do arquivo):
+    GEN:1533 EXO:1213 LEV:859 NUM:1288 DEU:959 JOS:658 JDG:618 RUT:85 1SA:810 2SA:695 1KI:816 2KI:719 1CH:942 2CH:822 EZR:280 NEH:406 EST:167 JOB:1070 PSA:2462 PRO:915 ECC:222 SOL:117 ISA:1292 JER:1364 LAM:154 EZE:1273 DAN:357 HOS:197 JOE:73 AMO:146 OBA:21 JON:48 MIC:105 NAH:47 HAB:56 ZEP:53 HAG:38 ZEC:211 MAL:55 MAT:1071 MAR:678 LUK:1151 JOH:879 ACT:1007 ROM:433 1CO:437 2CO:257 GAL:149 EPH:155 PHI:104 COL:95 1TH:89 2TH:47 1TI:113 2TI:83 TIT:46 PHM:25 HEB:303 JAM:108 1PE:105 2PE:61 1JO:105 2JO:13 3JO:15 JUD:25 REV:404
+   códigos NÃO reconhecidos: ['SOL', 'EZE', 'JOE', 'NAH', 'MAR', 'JOH', 'PHI', 'JAM', '1JO', '2JO', '3JO']
+   livros que NÃO aparecem: ['SNG', 'EZK', 'JOL', 'NAM', 'MRK', 'JHN', 'PHP', 'JAS', '1JN', '2JN', '3JN']
+   linhas sem formato 'LIVRO cap:vers' (0):
+   versículos sem texto: 0
+   exemplos de versículos juntados: []
+====================================================================== 
+BLT  https://ebible.org/Scriptures/porblt_vpl.zip
+  arquivos no zip: [('haiola.css', 10931), ('porblt_about.htm', 3071), ('porblt_vpl.sql', 1685730), ('porblt_vpl.txt', 1152856), ('porblt_vpl.xml', 1312084), ('signature.txt.asc', 2030)]
+
+  --- porblt_vpl.txt: 7959 linhas
+   | MAT 1:1 Este livro é o registro da genealogia de Jesus Cristo, filho de Davi, filho de Abraão:
+   | MAT 1:2 Abraão gerou Isaque; Isaque gerou Jacó; Jacó gerou Judá e seus irmãos;
+   | MAT 1:3 Judá gerou Perez e Zera, cuja mãe foi Tamar; Perez gerou Esrom; Esrom gerou Arão;
+   | MAT 1:4 Arão gerou Aminadabe; Aminadabe gerou Naassom; Naassom gerou Salmom;
+   códigos de livro (ordem do arquivo):
+    MAT:1071 MAR:678 LUK:1151 JOH:879 ACT:1007 ROM:433 1CO:437 2CO:257 GAL:149 EPH:155 PHI:104 COL:95 1TH:89 2TH:47 1TI:113 2TI:83 TIT:46 PHM:25 HEB:303 JAM:108 1PE:105 2PE:61 1JO:105 2JO:13 3JO:15 JUD:25 REV:405
+   códigos NÃO reconhecidos: ['MAR', 'JOH', 'PHI', 'JAM', '1JO', '2JO', '3JO']
+   livros que NÃO aparecem: ['GEN', 'EXO', 'LEV', 'NUM', 'DEU', 'JOS', 'JDG', 'RUT', '1SA', '2SA', '1KI', '2KI', '1CH', '2CH', 'EZR', 'NEH', 'EST', 'JOB', 'PSA', 'PRO', 'ECC', 'SNG', 'ISA', 'JER', 'LAM', 'EZK', 'DAN', 'HOS', 'JOL', 'AMO', 'OBA', 'JON', 'MIC', 'NAM', 'HAB', 'ZEP', 'HAG', 'ZEC', 'MAL', 'MRK', 'JHN', 'PHP', 'JAS', '1JN', '2JN', '3JN']
+   linhas sem formato 'LIVRO cap:vers' (0):
+   versículos sem texto: 17
+   exemplos de versículos juntados: []
+====================================================================== 
+TFT  https://ebible.org/Scriptures/portft_vpl.zip
+  arquivos no zip: [('haiola.css', 10931), ('portft_about.htm', 2433), ('portft_vpl.sql', 2336297), ('portft_vpl.txt', 1851107), ('portft_vpl.xml', 1964287), ('signature.txt.asc', 2030)]
+
+  --- portft_vpl.txt: 7899 linhas
+   | MAT 1:1 [Esta é] a história dos antepassados de Jesus Cristo/o Messias, descendente do [Rei ] Davi e de Abraão
+   | MAT 1:2 Abraão foi pai de Isaque. Isaque foi pai de Jacó. Jacó foi pai de Judá e dos irmãos [mais velhos e mai
+   | MAT 1:3 Judá foi pai de Peres e de Zerá, [e a mãe deles] foi Tamar. Peres foi pai de Esrom.
+   | MAT 1:4 Esrom foi pai de Arão. Arão foi pai de Aminadabe. Aminadabe foi pai de Nasom. Nasom foi pai de Salmom.
+   códigos de livro (ordem do arquivo):
+    MAT:1061 MAR:671 LUK:1140 JOH:873 ACT:997 ROM:431 1CO:436 2CO:255 GAL:149 EPH:153 PHI:102 COL:95 1TH:89 2TH:47 1TI:113 2TI:83 TIT:45 PHM:25 HEB:302 JAM:108 1PE:105 2PE:61 1JO:104 2JO:13 3JO:15 JUD:25 REV:401
+   códigos NÃO reconhecidos: ['MAR', 'JOH', 'PHI', 'JAM', '1JO', '2JO', '3JO']
+   livros que NÃO aparecem: ['GEN', 'EXO', 'LEV', 'NUM', 'DEU', 'JOS', 'JDG', 'RUT', '1SA', '2SA', '1KI', '2KI', '1CH', '2CH', 'EZR', 'NEH', 'EST', 'JOB', 'PSA', 'PRO', 'ECC', 'SNG', 'ISA', 'JER', 'LAM', 'EZK', 'DAN', 'HOS', 'JOL', 'AMO', 'OBA', 'JON', 'MIC', 'NAM', 'HAB', 'ZEP', 'HAG', 'ZEC', 'MAL', 'MRK', 'JHN', 'PHP', 'JAS', '1JN', '2JN', '3JN']
+   linhas sem formato 'LIVRO cap:vers' (0):
+   versículos sem texto: 0
+   exemplos de versículos juntados: []
